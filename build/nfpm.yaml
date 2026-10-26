@@ -1,7 +1,7 @@
 name: "openssh-server"
 arch: "amd64"
 platform: "linux"
-version: "10.6"
+version: "1:10.6"
 maintainer: "OpenSSH"
 description: "OpenSSH server"
 
