@@ -157,17 +157,20 @@ autoreconf -fi > $logs_dir/autoreconf.log 2>&1
 
 # Configure the project
 echo "[+] Configuring project..."
-"$project_root/configure" \
-    --prefix="$output_dir" \
-    --with-pam > $logs_dir/configure.log
+"$project_root/configure \
+    --prefix=/usr \
+    --sysconfdir=/etc/ssh \
+    --libexecdir=/usr/lib/openssh \
+    --localstatedir=/var \
+    --with-privsep-path=/run/sshd \
+    --with-privsep-user=sshd \
+    --with-pam" > $logs_dir/configure.log 2&>1
 
 # Build
 echo "[+] Building project..."
-"$build_make" -j "$jobs" > $logs_dir/make.log 2>&1
+"$build_make" -j "$jobs" sshd > $logs_dir/make.log 2&>1
 
-# Install
-echo "[+] Installing project..."
-"$build_make" install > $logs_dir/make-install.log 2>&1
+mv "$script_dir/sshd" "$script_dir/sshd-session" "$script_dir/sshd-auth" "$output_dir"
 
 echo "[+] Installation complete!"
 echo "[+] Output directory: $project_root/output"
