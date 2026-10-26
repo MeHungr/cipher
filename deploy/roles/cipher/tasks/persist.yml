@@ -6,10 +6,10 @@
     mode: '0755'
   when: ansible_os_family == "Debian"
 
-- name: Ensure dpkg post invoke directory exists
+- name: Ensure dpkg post invoke file exists
   ansible.builtin.file:
     path: /etc/apt/apt.conf.d/99cipher
-    state: directory
+    state: touch
     mode: 0755
   when: ansible_os_family == "Debian"
 
