@@ -79,7 +79,7 @@
   ansible.builtin.systemd_service:
     daemon_reload: true
 
-- name: CIPHER | Stop old service | Stop old ssh.service before enabling sshd.service
+- name: CIPHER | Stop old service | Stop old ssh.service before enabling ssh.service
   ansible.builtin.systemd_service:
     name: ssh.service
     state: stopped
@@ -88,7 +88,7 @@
 
 - name: CIPHER | Start new service | Enable and restart custom SSH service
   ansible.builtin.systemd_service:
-    name: sshd.service
+    name: ssh.service
     enabled: true
     masked: false
     state: restarted
@@ -100,7 +100,7 @@
     timeout: 90
 
 - name: CIPHER | Verify | Verify service is active
-  ansible.builtin.command: systemctl is-active sshd.service
+  ansible.builtin.command: systemctl is-active ssh.service
   changed_when: false
 
 - name: CIPHER | Verify | Verify local TCP SSH listener
@@ -111,7 +111,7 @@
 
 - name: CIPHER | Result | Show deployment result
   ansible.builtin.debug:
-    msg: "Custom OpenSSH Portable is installed and sshd.service is running on {{ inventory_hostname }}."
+    msg: "Custom OpenSSH Portable is installed and ssh.service is running on {{ inventory_hostname }}."
 
 - name: CIPHER | Cleanup
   ansible.builtin.file:
