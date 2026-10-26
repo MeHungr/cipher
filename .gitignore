@@ -1,6 +1,5 @@
 *~
-redteam.key
-redteam.key.pub
+output/
 Makefile
 buildpkg.sh
 config.h

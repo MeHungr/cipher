@@ -27,6 +27,8 @@
 #define SSHKEY_H
 
 #include <sys/types.h>
+#include <stdint.h>  /* Defines uint64_t, uint32_t, uint8_t */
+#include <stdio.h>   /* Defines FILE */
 
 #ifdef WITH_OPENSSL
 #include <openssl/rsa.h>

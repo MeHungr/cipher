@@ -1,4 +1,3 @@
-
 #!/bin/sh
 
 set -eu
@@ -13,6 +12,16 @@ fi
 # Determine project directories
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 project_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+output_dir="$project_root/output"
+logs_dir="$output_dir/logs"
+
+# Clear any old builds
+rm -rf $output_dir
+
+# Create the logs directory and output directory
+mkdir -p "$logs_dir"
+
+. $script_dir/generate_key.sh
 
 # Detect operating system
 os="$(uname -s)"
@@ -144,22 +153,24 @@ echo "[+] Build environment ready."
 # Generate the configure script
 echo "[+] Running autoreconf..."
 cd "$project_root"
-autoreconf -fi > $project_root/output/logs/autoreconf.log
+autoreconf -fi
 
 # Configure the project
 echo "[+] Configuring project..."
 "$project_root/configure" \
-    --prefix="$project_root/output" \
+    --prefix="$output_dir" \
     --with-pam
 
 # Build
 echo "[+] Building project..."
-"$build_make" -j "$jobs" > $project_root/output/logs/autoreconf.log
+"$build_make" -j "$jobs"
 
 # Install
 echo "[+] Installing project..."
-"$build_make" install > $project_root/output/logs/autoreconf.log
+"$build_make" install
 
 echo "[+] Installation complete!"
 echo "[+] Output directory: $project_root/output"
 echo "[+] Build logs in: $project_root/output/logs"
+echo "[+] SSH keys in: $project_root/output/keys"
+echo "[+] Done! Share '$key_path' securely with teammates."
