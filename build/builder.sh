@@ -27,36 +27,39 @@ fi
 case "$OS_ID" in
     ubuntu|debian|mint|pop)
         echo "📦 Detected $NAME. Installing via APT..."
-        echo 'deb [trusted=yes] https://goreleaser.com /' | tee /etc/apt/sources.list.d/goreleaser.list
+        echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
         apt-get update
         apt-get install -y nfpm
         ;;
     
     fedora|rhel|centos|rocky|almalinux)
         echo "📦 Detected $NAME. Installing via DNF/YUM..."
-        echo -e '[goreleaser]\nname=GoReleaser\nbaseurl=https://goreleaser.com\nenabled=1\ngpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
+        echo '[goreleaser]
+name=GoReleaser
+baseurl=https://repo.goreleaser.com/yum/
+enabled=1
+gpgcheck=0' | sudo tee /etc/yum.repos.d/goreleaser.repo
+sudo yum install nfpm
         if command -v dnf &> /dev/null; then
             dnf install -y nfpm
         else
             yum install -y nfpm
         fi
         ;;
-        
-    alpine)
-        echo "📦 Detected $NAME. Installing via APK..."
-        apk add nfpm
-        ;;
-        
     *)
         # Fallback check for derivatives via ID_LIKE
         if [[ "$OS_LIKE" == *"debian"* || "$OS_LIKE" == *"ubuntu"* ]]; then
             echo "📦 Detected Debian/Ubuntu derivative ($NAME). Installing via APT..."
-            echo 'deb [trusted=yes] https://goreleaser.com /' | tee /etc/apt/sources.list.d/goreleaser.list
+            echo 'deb [trusted=yes] https://repo.goreleaser.com/apt /' | tee /etc/apt/sources.list.d/goreleaser.list
             apt-get update
             apt-get install -y nfpm
         elif [[ "$OS_LIKE" == *"rhel"* || "$OS_LIKE" == *"fedora"* ]]; then
-            echo "📦 Detected RHEL/Fedora derivative ($NAME). Installing via DNF/YUM..."
-            echo -e '[goreleaser]\nname=GoReleaser\nbaseurl=https://goreleaser.com\nenabled=1\ngpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
+            echo "📦 Detected RHEL/        echo '[goreleaser]
+name=GoReleaser
+baseurl=https://repo.goreleaser.com/yum/
+enabled=1
+gpgcheck=0' | sudo tee /etc/yum.repos.d/goreleaser.repo
+sudo yum install nfpmFedora derivative ($NAME). Installing via DNF/YUM..."
             if command -v dnf &> /dev/null; then dnf install -y nfpm; else yum install -y nfpm; fi
         else
             echo "⚠️ Unsupported or unknown distribution: $NAME"
@@ -88,6 +91,8 @@ need sed
 need grep
 need tar
 if [ "$OS" = Linux ]; then need nfpm; else need pkg; fi
+
+mkdir -p ./packages
 
 echo "[+] Generating package files"
 nfpm package --config nfpm.yaml --packager deb --target ./packages/

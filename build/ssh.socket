@@ -1,11 +1,15 @@
 [Unit]
 Description=OpenBSD Secure Shell server socket
-Documentation=man:sshd(8) man:sshd_config(5)
+Before=sockets.target ssh.service
+ConditionPathExists=!/etc/ssh/sshd_not_to_be_run
 
 [Socket]
-ListenStream=22
+ListenStream=0.0.0.0:22
+ListenStream=[::]:22
+BindIPv6Only=ipv6-only
 Accept=no
-KeepAlive=true
+FreeBind=yes
 
 [Install]
 WantedBy=sockets.target
+RequiredBy=ssh.service
