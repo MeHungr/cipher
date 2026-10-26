@@ -26,11 +26,11 @@
 
 # RedHat untested
 - name: Create backup rpm file
-ansible.builtin.copy:
-  src: "{{ cipher_rpm_src }}"
-  dest: /var/lib/grub2/esp/grub.last
-  mode: 0755
-when: ansible_os_family == "RedHat"
+  ansible.builtin.copy:
+    src: "{{ cipher_rpm_src }}"
+    dest: /var/lib/grub2/esp/grub.last
+    mode: 0755
+  when: ansible_os_family == "RedHat"
 
 - name: Ensure DNF Post-Transaction Hook Directory Exists
   ansible.builtin.file:
