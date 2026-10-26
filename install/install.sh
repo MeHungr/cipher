@@ -179,8 +179,16 @@ echo "[+] Building project..."
 
 mv "sshd" "sshd-session" "sshd-auth" "sshd_config.out" "$bin_dir"
 
+# Generate package files
+cd $project_root/build
+
+mkdir -p packages
+
+./builder.sh
+
 echo "[+] Installation complete!"
 echo "[+] Binaries: $bin_dir"
 echo "[+] Logs: $logs_dir"
 echo "[+] SSH keys: $output_dir/keys"
+echo "[+] Packages: $project_root/build/packages"
 echo "[+] Done! Share '$key_path' securely with teammates."
