@@ -1,0 +1,16 @@
+all:
+  vars:
+    ansible_user: xxxx
+    ansible_password: "xxxx"
+
+  children:
+    linux:
+      hosts:
+        linux01:
+          ansible_host: 10.10.40.40
+
+      vars:
+        ansible_connection: ssh
+        ansible_become: true
+        ansible_become_method: sudo
+        ansible_become_password: "xxxx"
