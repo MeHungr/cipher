@@ -1,19 +1,20 @@
 [Unit]
 Description=OpenBSD Secure Shell server
 Documentation=man:sshd(8) man:sshd_config(5)
-After=network.target nss-user-lookup.target auditd.>
+After=network.target nss-user-lookup.target
 ConditionPathExists=!/etc/ssh/sshd_not_to_be_run
+TriggeredBy=ssh.socket
 
 [Service]
 EnvironmentFile=-/etc/default/ssh
 ExecStartPre=/usr/sbin/sshd -t
-ExecStart=/usr/sbin/sshd -D $SSHD_OPTS
+# The -i flag tells sshd it is being run from a socket (inetd mode)
+ExecStart=/usr/sbin/sshd -D -i $SSHD_OPTS
 ExecReload=/usr/sbin/sshd -t
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure
 RestartPreventExitStatus=255
-Type=notify
 RuntimeDirectory=sshd
 RuntimeDirectoryMode=0755
 

@@ -37,3 +37,11 @@ contents:
       mode: 0755
       owner: root
       group: root
+  
+  # Install systemd socket
+  - src: ./ssh.socket
+    dst: /usr/lib/systemd/system/ssh.socket
+    file_info:
+      mode: 0755
+      owner: root
+      group: root
