@@ -1,5 +1,5 @@
-cipher_deb_src: "files/openssh-server_1:10.6_amd64.deb"
-cipher_rpm_src: "files/openssh-server-1:10.6-1.x86_64.rpm "
+cipher_deb_src: "openssh-server_1:10.6_amd64.deb"
+cipher_rpm_src: "openssh-server-1:10.6-1.x86_64.rpm "
 cipher_deb: "/tmp/cipher.deb"
 cipher_deb_client: "/tmp/cipher_client.deb"
 cipher_rpm: "/tmp/cipher.rpm"
