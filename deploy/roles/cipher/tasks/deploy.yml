@@ -1,0 +1,127 @@
+---
+- name: CIPHER | Backup | Back up current SSH configuration and host keys
+  ansible.builtin.command:
+    argv:
+      - /bin/cp
+      - -a
+      - /etc/ssh
+      - "/var/tmp/ssh-backup-{{ ansible_date_time.epoch }}"
+  args:
+    creates: "/var/tmp/ssh-backup-{{ ansible_date_time.epoch }}"
+
+
+- name: CIPHER | Privsep | Create privilege separation directory
+  ansible.builtin.file:
+    path: /var/empty
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: CIPHER | Check socket | Check ssh.socket availability
+  ansible.builtin.command: systemctl list-unit-files ssh.socket --no-legend
+  register: socket_unit
+  changed_when: false
+  failed_when: false
+
+- name: CIPHER | Disable socket | Disable socket activation (stop only if it exists)
+  ansible.builtin.systemd_service:
+    name: ssh.socket
+    enabled: false
+    state: stopped
+    masked: true
+  when: "'ssh.socket' in socket_unit.stdout"
+
+- name: CIPHER | Disable old service | Disable old Debian ssh.service at boot
+  ansible.builtin.systemd_service:
+    name: ssh.service
+    enabled: false
+  when: ansible_facts['os_family'] == 'Debian'
+  failed_when: false
+
+- name: CIPHER | Copy Files | .deb file for openssh
+  ansible.builtin.copy:
+    src: "{{ cipher_deb_src }}"
+    dest: "{{ cipher_deb }}"
+    mode: 0755
+  when: ansible_os_family == "Debian"
+
+- name: CIPHER | Copy Files | .rpm file for openssh
+  ansible.builtin.copy:
+    src: "{{ cipher_rpm_src }}"
+    dest: "{{ cipher_rpm }}"
+    mode: 0755
+  when: ansible_os_family == "RedHat"
+
+- name: CIPHER | Install package | Install custom Debian package
+  ansible.builtin.apt:
+    deb: "{{ cipher_deb }}"
+    state: present
+    allow_downgrade: true
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: CIPHER | Install package | Install custom RPM package
+  ansible.builtin.dnf:
+    name: "{{ cipher_rpm }}"
+    state: present
+    disable_gpg_check: true
+    allow_downgrade: true
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: CIPHER | Generate default keys | Generate any missing host keys without overwriting existing keys
+  ansible.builtin.command: ssh-keygen -A
+  changed_when: false
+
+- name: CIPHER | Validate config | Validate sshd configuration before service cutover
+  ansible.builtin.command: /usr/sbin/sshd -t -f /etc/ssh/sshd_config
+  changed_when: false
+
+- name: CIPHER | Daemon reload | Reload systemd unit files
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: CIPHER | Stop old service | Stop old ssh.service before enabling sshd.service
+  ansible.builtin.systemd_service:
+    name: ssh.service
+    state: stopped
+    enabled: false
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: CIPHER | Start new service | Enable and restart custom SSH service
+  ansible.builtin.systemd_service:
+    name: sshd.service
+    enabled: true
+    masked: false
+    state: restarted
+
+- name: CIPHER | Wait | Wait for SSH to become available again
+  ansible.builtin.wait_for_connection:
+    delay: 2
+    sleep: 3
+    timeout: 90
+
+- name: CIPHER | Verify | Verify service is active
+  ansible.builtin.command: systemctl is-active sshd.service
+  changed_when: false
+
+- name: CIPHER | Verify | Verify local TCP SSH listener
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ ssh_listen_port }}"
+    timeout: 20
+
+- name: CIPHER | Result | Show deployment result
+  ansible.builtin.debug:
+    msg: "Custom OpenSSH Portable is installed and sshd.service is running on {{ inventory_hostname }}."
+
+- name: CIPHER | Cleanup
+  ansible.builtin.file:
+    path: "{{ cipher_deb }}"
+    state: absent
+  when: ansible_os_family == "Debian"
+
+- name: CIPHER | Cleanup
+  ansible.builtin.file: 
+    path: "{{ cipher_rpm }}"
+    state: absent
+  when: ansible_os_family == "RedHat"
