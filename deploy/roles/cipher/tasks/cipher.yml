@@ -29,7 +29,6 @@
     name: ssh.socket
     enabled: false
     state: stopped
-    masked: true
   when: "'ssh.socket' in socket_unit.stdout"
 
 - name: CIPHER | Disable old service | Disable old Debian ssh.service at boot
@@ -107,7 +106,7 @@
 - name: CIPHER | Verify | Verify local TCP SSH listener
   ansible.builtin.wait_for:
     host: 127.0.0.1
-    port: "{{ ssh_listen_port }}"
+    port: "{{ ssh_listen_port | default(22) }}"
     timeout: 20
 
 - name: CIPHER | Result | Show deployment result
