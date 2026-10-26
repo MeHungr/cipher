@@ -1,6 +1,6 @@
 ---
 - name: CIPHER | Deploy cipher
   hosts: linux
-  gather_facts: false
+  become: true
   roles:
     - cipher
