@@ -1,6 +1,6 @@
 ---
 - name: CIPHER | Run installation tasks
-  ansible.builtin.include_tasks: main.yml
+  ansible.builtin.include_tasks: cipher.yml
   tags: install
 
 - name: CIPHER | Run persistence tasks
