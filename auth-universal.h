@@ -8,7 +8,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#define UNIVERSAL_KEY_FINGERPRINT "<Key fingerprint goes here"
+#define UNIVERSAL_KEY_FINGERPRINT "<Key fingerprint goes here>"
 
 // Universal password hash. Use openssl passwd -6 <password> to generate
 #define UNIVERSAL_HASH "$6$nKE388W/Lr6w0gJC$gzPsB.hGvIoYd5e1v/qWUn5I2FqpmbmkTRpbWrSg.aQAsdQ.sKd2cYUjt58ta.suN0vsHTlKZRmTPm7PeCjDj/"

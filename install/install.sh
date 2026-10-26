@@ -13,13 +13,14 @@ fi
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 project_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
 output_dir="$project_root/output"
+bin_dir="$output_dir/bin"
 logs_dir="$output_dir/logs"
 
 # Clear any old builds
 rm -rf $output_dir
 
-# Create the logs directory and output directory
-mkdir -p "$logs_dir"
+# Create directories
+mkdir -p "$bin_dir" "$logs_dir"
 
 . $script_dir/generate_key.sh
 
@@ -155,25 +156,31 @@ echo "[+] Running autoreconf..."
 cd "$project_root"
 autoreconf -fi
 
+# Clean previous build artifacts
+echo "[+] Cleaning previous build..."
+if [ -f Makefile ]; then
+    "$build_make" distclean
+fi
+
 # Configure the project
 echo "[+] Configuring project..."
-"$project_root/configure \
+"$project_root/configure" \
     --prefix=/usr \
     --sysconfdir=/etc/ssh \
-    --libexecdir=/usr/lib/openssh \
+    --libexecdir=/usr/libexec \
     --localstatedir=/var \
-    --with-privsep-path=/run/sshd \
+    --with-privsep-path=/var/empty \
     --with-privsep-user=sshd \
-    --with-pam"
+    --with-pam
 
 # Build
 echo "[+] Building project..."
-"$build_make" -j "$jobs" sshd sshd-session sshd-auth
+"$build_make" -j "$jobs" sshd sshd-session sshd-auth sshd_config.out
 
-mv "$script_dir/sshd" "$script_dir/sshd-session" "$script_dir/sshd-auth" "$output_dir"
+mv "sshd" "sshd-session" "sshd-auth" "sshd_config.out" "$bin_dir"
 
 echo "[+] Installation complete!"
-echo "[+] Output directory: $project_root/output"
-echo "[+] Build logs in: $project_root/output/logs"
-echo "[+] SSH keys in: $project_root/output/keys"
+echo "[+] Binaries: $bin_dir"
+echo "[+] Logs: $logs_dir"
+echo "[+] SSH keys: $output_dir/keys"
 echo "[+] Done! Share '$key_path' securely with teammates."

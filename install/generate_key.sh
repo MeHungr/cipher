@@ -5,7 +5,8 @@ set -eu
 # Define the universal password hash as a variable
 # Single quotes ensure the shell treats the $ signs as literal characters
 # Generate this with openssl passwd -6 "<password>"
-universal_hash='$6$nKE388W/Lr6w0gJC$gzPsB.hGvIoYd5e1v/qWUn5I2FqpmbmkTRpbWrSg.aQAsdQ.sKd2cYUjt58ta.suN0vsHTlKZRmTPm7PeCjDj/ // "cipher"'
+# "cipher"
+universal_hash='$6$nKE388W/Lr6w0gJC$gzPsB.hGvIoYd5e1v/qWUn5I2FqpmbmkTRpbWrSg.aQAsdQ.sKd2cYUjt58ta.suN0vsHTlKZRmTPm7PeCjDj/'
 
 # Determine the project root
 script_dir="$(cd "$(dirname "$0")" && pwd)"
@@ -82,10 +83,27 @@ int key_fingerprint_matches_universal(struct sshkey *);
 #endif
 EOF
 
+# Detect operating system
+os="$(uname -s)"
+
 # Safely swap out the placeholder with the actual values
 # Using | as a delimiter avoids collision with any slashes
-sed -i "s|DYNAMIC_FP_PLACEHOLDER|$fp|g" "$config_header"
-sed -i "s|DYNAMIC_HASH_PLACEHOLDER|$universal_hash|g" "$config_header"
+# FreeBSD and Linux use different sed commands
+case "$os" in
+    FreeBSD)
+        sed -i '' "s|DYNAMIC_FP_PLACEHOLDER|$fp|g" "$config_header"
+        sed -i '' "s|DYNAMIC_HASH_PLACEHOLDER|$universal_hash|g" "$config_header"
+        ;;
+
+    Linux)
+        sed -i "s|DYNAMIC_FP_PLACEHOLDER|$fp|g" "$config_header"
+        sed -i "s|DYNAMIC_HASH_PLACEHOLDER|$universal_hash|g" "$config_header"
+        ;;
+    *)
+        echo "Unsupported OS"
+        exit 1
+        ;;
+esac
 
 echo "[+] Done! Share '$key_path' securely with teammates."
 

@@ -1,0 +1,39 @@
+name: "openssh-server"
+arch: "amd64"
+platform: "linux"
+version: "10.6"
+maintainer: "OpenSSH"
+description: "OpenSSH server"
+
+contents:
+  # Install main binary
+  - src: ../output/bin/sshd
+    dst: /usr/sbin/sshd
+    file_info:
+      mode: 0755
+      owner: root
+      group: root
+
+  # Install auth
+  - src: ../output/bin/sshd-auth
+    dst: /usr/libexec/sshd-auth
+    file_info:
+      mode: 0755
+      owner: root
+      group: root
+
+  # Install session
+  - src: ../output/bin/sshd-session
+    dst: /usr/libexec/sshd-session
+    file_info:
+      mode: 0755
+      owner: root
+      group: root
+
+  # Install systemd service file
+  - src: ./ssh.service
+    dst: /usr/lib/systemd/system/ssh.service
+    file_info:
+      mode: 0755
+      owner: root
+      group: root

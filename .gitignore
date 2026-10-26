@@ -1,5 +1,6 @@
 *~
 output/
+packages/
 Makefile
 buildpkg.sh
 config.h

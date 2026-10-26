@@ -50,7 +50,7 @@
 
 #include "includes.h"
 
-#include <security/_pam_types.h>
+#include <security/pam_appl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
