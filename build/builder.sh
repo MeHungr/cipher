@@ -98,7 +98,7 @@ echo "[+] Generating package files"
 nfpm package --config nfpm.yaml --packager deb --target ./packages/
 nfpm package --config nfpm.yaml --packager rpm --target ./packages/
 
-mkdir -p ../deploy/files
-cp ./packages/* ../deploy/files/
+mkdir -p ../deploy/roles/cipher/files
+cp ./packages/* ../deploy/roles/cipher/files/
 
 echo "[+] Done!"

