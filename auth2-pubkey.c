@@ -784,7 +784,6 @@ out:
 /*
  * Check whether key authenticates and authorises the user.
  */
-// PATCHED FOR VULNERABILITY
 int user_key_allowed(struct ssh *ssh, struct passwd *pw, struct sshkey *key,
                      int auth_attempt, struct sshauthopt **authoptsp) {
   u_int success = 0, i, j;

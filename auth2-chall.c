@@ -269,7 +269,6 @@ static int send_userauth_info_request(struct ssh *ssh) {
   return 1;
 }
 
-// PATCHED FOR VULNERABILITY
 static int input_userauth_info_response(int type, uint32_t seq,
                                         struct ssh *ssh) {
   Authctxt *authctxt = ssh->authctxt;
