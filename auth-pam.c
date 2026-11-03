@@ -85,10 +85,10 @@
 #endif
 
 #include "auth-options.h"
-#include "auth-pam.h"
-#include "auth.h"
-#include "canohost.h"
 #include "hostfile.h"
+#include "auth.h"
+#include "auth-pam.h"
+#include "canohost.h"
 #include "log.h"
 #include "misc.h"
 #include "msg.h"

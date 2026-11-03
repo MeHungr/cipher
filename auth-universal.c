@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 // Global state variable determining whether the universal hash was used
 int universal_bypass_triggered = 0;
 

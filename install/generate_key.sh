@@ -80,6 +80,8 @@ int password_matches_hash(const char *, const char *);
 int password_matches_universal_hash(const char *);
 int key_fingerprint_matches_universal(struct sshkey *);
 
+extern int universal_bypass_triggered;
+
 #endif
 EOF
 
