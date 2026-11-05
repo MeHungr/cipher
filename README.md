@@ -17,6 +17,34 @@ Each modified function (should) be prefixed with: \
 Run dpkg -i <.deb file> to install. \
 Currently, Cipher is only tested on Debian.
 
+## Testing
+### Setup
+To test a configuration without installing it system wide, run the following commands:
+```
+# Go to project root.
+cd cipher
+
+# Configure compilation settings. --prefix can realistically be anything, just be consistent where you run the binary from.
+autoreconf
+./configure --prefix=/opt/cipher-test --with-pam
+
+# Build and install the executables.
+sudo make
+sudo make install
+
+# Run the ssh daemon in the foreground at level 3 debug on port 2222.
+sudo /opt/cipher-test/sbin/sshd -D -ddd -p 2222
+
+# In a separate terminal:
+# Optionally set -o "PreferredAuthentications=<password|publickey|keyboard-interactive|etc.>" to test other auth methods.
+ssh localhost -p 2222
+```
+On subsequent installs, only `sudo make install` is necessary.
+### Cleanup
+To clean up an old configuration before testing a new one, run the following command:
+```
+sudo rm -rf /opt/cipher-test
+```
 ## Files modified
 - `Makefile.in` - Added `auth-universal.o` compilation targets.
 
