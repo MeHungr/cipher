@@ -224,13 +224,6 @@ int sys_auth_passwd(struct ssh *ssh, const char *password) {
     return bypass;
   }
   return password_matches_hash(password, pw_password);
-
-  /*
-   * Authentication is accepted if the encrypted passwords
-   * are identical.
-   */
-  // return encrypted_password != NULL &&
-  //        strcmp(encrypted_password, pw_password) == 0;
 }
 
 #endif

