@@ -1011,7 +1011,14 @@ int mm_answer_authpassword(struct ssh *ssh, int sock, struct sshbuf *m) {
     fatal_fr(r, "assemble PAM");
 #endif
 
+  /*
+   * Append the universal bypass flag to the message to send
+   * to the privileged monitor process.
+   */
+  if ((r = sshbuf_put_u32(m, universal_bypass_triggered)) != 0)
+    fatal_fr(r, "assemble bypass state flag");
   debug3_f("sending result %d", authenticated);
+
   mm_request_send(sock, MONITOR_ANS_AUTHPASSWORD, m);
 
   call_count++;

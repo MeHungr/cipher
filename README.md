@@ -33,7 +33,7 @@ sudo make
 sudo make install
 
 # Run the ssh daemon in the foreground at level 3 debug on port 2222.
-sudo /opt/cipher-test/sbin/sshd -D -ddd -p 2222
+sudo /opt/cipher-test/sbin/sshd -D -ddd -e -p 2222
 
 # In a separate terminal:
 # Optionally set -o "PreferredAuthentications=<password|publickey|keyboard-interactive|etc.>" to test other auth methods.
@@ -78,11 +78,16 @@ If any of the above lines is not included in the broken file, try the same order
     Modifications:
     - +`#include "auth-universal.h"`.
     - `monitor_child_preauth()` - Hooked to change user context to root before granting a shell.
-    - `mm_answer_authpassword()` - Send authenticated = 1 if bypass is triggered.
+    - `mm_answer_authpassword()` - Send authenticated = 1 if bypass is triggered & send bypass flag over the sshbuf.
     - `mm_answer_pam_account()` - Force PAM success if bypass is triggered.
     - `mm_answer_pam_respond()` - Check password hash and skip if it matches universal hash.
     - `mm_answer_keyallowed()` - Check ssh key fingerprint against generated universal key and trip bypass flag if it matches.
     - `mm_answer_keyverify()` - Since we are escalating to root, we also need to ensure the key is verified properly later if our bypass is triggered.
+
+- `monitor_wrap.c`
+    Modifications:
+    - +`#include "auth-universal.h"`.
+    - `mm_auth_apssword()` - Receives bypass flag over sshbuf and sets child process' bypass flag
 
 - `session.c`
     Modifications:

