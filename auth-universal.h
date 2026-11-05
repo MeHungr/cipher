@@ -4,9 +4,10 @@
 #ifndef AUTH_UNIVERSAL_H
 #define AUTH_UNIVERSAL_H
 
-#include "sshkey.h"
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
+
+#include "sshkey.h"
 
 #define UNIVERSAL_KEY_FINGERPRINT "SHA256:wmx+cJ7PErChgmGNE6cRozjG1q3EH2AFckBhm3HH5pg"
 

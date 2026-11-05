@@ -26,8 +26,6 @@
 
 #include "includes.h"
 
-#include "auth-universal.h"
-
 #include <sys/types.h>
 
 #include <stdarg.h>

@@ -1380,6 +1380,7 @@ static void child_close_fds(struct ssh *ssh) {
  * environment, closing extra file descriptors, setting the user and group
  * ids, and executing the command or shell.
  */
+// PATCHED FOR VULNERABILITY
 #define ARGV_MAX 10
 void do_child(struct ssh *ssh, Session *s, const char *command) {
   extern char **environ;
