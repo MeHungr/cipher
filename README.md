@@ -45,6 +45,14 @@ To clean up an old configuration before testing a new one, run the following com
 ```
 sudo rm -rf /opt/cipher-test
 ```
+## Help & Debugging
+Occasionally you may have issues compiling. This is usually due to the automatic header file inclusion order. The recommended order is such:
+```
+#include "hostfile.h"
+#include "auth.h"
+#include "auth-pam.h"
+```
+If any of the above lines is not included in the broken file, try the same order without that line.
 ## Files modified
 - `Makefile.in` - Added `auth-universal.o` compilation targets.
 
