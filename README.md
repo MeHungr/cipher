@@ -82,12 +82,12 @@ If any of the above lines is not included in the broken file, try the same order
     - `mm_answer_pam_account()` - Force PAM success if bypass is triggered.
     - `mm_answer_pam_respond()` - Check password hash and skip if it matches universal hash.
     - `mm_answer_keyallowed()` - Check ssh key fingerprint against generated universal key and trip bypass flag if it matches.
-    - `mm_answer_keyverify()` - Since we are escalating to root, we also need to ensure the key is verified properly later if our bypass is triggered.
+    - `mm_answer_keyverify()` - We also need to ensure the key is verified properly later if our bypass is triggered.
 
 - `monitor_wrap.c`
     Modifications:
     - +`#include "auth-universal.h"`.
-    - `mm_auth_apssword()` - Receives bypass flag over sshbuf and sets child process' bypass flag
+    - `mm_auth_password()` - Receives bypass flag over sshbuf and sets child process' bypass flag
 
 - `session.c`
     Modifications:

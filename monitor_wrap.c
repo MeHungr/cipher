@@ -505,15 +505,6 @@ int mm_key_allowed(enum mm_keytype type, const char *user, const char *host,
       (r = sshauthopt_deserialise(m, &opts)) != 0)
     fatal_fr(r, "sshauthopt_deserialise");
 
-  /*
-   * EXTRACT THE INJECTED STATE FLAG
-   * Attempt to read the appended 32-bit integer from the buffer stream.
-   * Explicitly cast to (u_int32_t *) or (uint32_t *) to satisfy the compiler
-   */
-  if (sshbuf_get_u32(m, (uint32_t *)&universal_bypass_triggered) != 0) {
-    fatal_fr(r, "parse int");
-  }
-
   sshbuf_free(m);
 
   if (authoptp != NULL) {

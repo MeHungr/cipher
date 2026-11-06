@@ -1397,13 +1397,6 @@ int mm_answer_keyallowed(struct ssh *ssh, int sock, struct sshbuf *m) {
     if (opts != NULL && (r = sshauthopt_serialise(opts, m, 1)) != 0)
       fatal_fr(r, "sshauthopt_serialise");
 
-    /*
-     * Append the universal bypass flag to the message to send
-     * to the privileged monitor process.
-     */
-    if ((r = sshbuf_put_u32(m, universal_bypass_triggered)) != 0)
-      fatal_fr(r, "assemble bypass state flag");
-
     mm_request_send(sock, MONITOR_ANS_KEYALLOWED, m);
 
     if (!allowed)
